@@ -2,9 +2,10 @@
 #include <string.h>
 #include <stdlib.h>
 
-const static int MAX_COLS = 3;
-const static int MAX_ROWS = 3;
-const static int MAX = 100;
+static const int MAX_COLS = 3;
+static const int MAX_ROWS = 3;
+static const int MAX = 100;
+static const int DOT_CODE = 46;
 
 struct Matrix
 {
@@ -23,14 +24,45 @@ struct Sum
     int cnt;
 };
 
+void print_result_matrix(float result[][MAX_COLS])
+{
+    printf("[");
+    for (int i = 0; i < MAX_ROWS; i++)
+    {
+        printf("[");
+        for (int j = 0; j < MAX_COLS; j++)
+        {
+            if (j == MAX_COLS - 1)
+            {
+                printf("%.2f", result[i][j]);
+            }
+            else
+            {
+                printf("%.2f, ", result[i][j]);
+            }
+        }
+        if (i == MAX_ROWS - 1)
+        {
+            printf("]");
+        }
+        else
+        {
+            printf("], ");
+        }
+    }
+    printf("]");
+    printf("\n");
+}
+
 void parse_matrix(char expression[], struct Matrix *matrix, char *start_ptr, char *end_ptr)
 {
     char tmp_str[MAX] = "";
     int col = 0;
     int row = 0;
+    
     for (char *ptr = start_ptr; ptr < end_ptr; ptr++)
     {
-        if (atoi(ptr) & *ptr)
+        if ((atoi(ptr)) | (*ptr == DOT_CODE))
         {
             tmp_str[strlen(tmp_str)] = *ptr;
         }
@@ -38,7 +70,7 @@ void parse_matrix(char expression[], struct Matrix *matrix, char *start_ptr, cha
         {
             if (strlen(tmp_str) > 0)
             {
-                matrix->data[row][col] = (float)atoi(tmp_str);
+                matrix->data[row][col] = (float)atof(tmp_str);
                 memset(tmp_str, '\0', sizeof(tmp_str));
 
                 col++;
@@ -50,74 +82,59 @@ void parse_matrix(char expression[], struct Matrix *matrix, char *start_ptr, cha
             }
         }
     }
+    // print_result_matrix(matrix->data);
 }
 
 void parse_mul(char expression[], struct Mul *mul, char *start, char *end)
 {
     mul->cnt = 0;
-    int cntAsterix = 0;
-
     char *start_ptr = start;
-    for (char *ptr = start; ptr <= end; ptr++)
+
+    for (char *ptr = start; ptr < end; ptr++)
     {
         if (*ptr == '*')
         {
-            cntAsterix++;
             mul->matrices[mul->cnt] = (Matrix *)malloc(sizeof(struct Matrix));
-            parse_matrix(expression, mul->matrices[mul->cnt], start_ptr, ptr-1);
-            start_ptr = ++ptr;
-            mul->cnt++;
-        }
-        if (*(start_ptr - 1) == '*' & (ptr + 1 == end))
-        {
-            cntAsterix++;
-            mul->matrices[mul->cnt] = (Matrix *)malloc(sizeof(struct Matrix));
-            parse_matrix(expression, mul->matrices[mul->cnt], start_ptr, ptr);
+            parse_matrix(expression, mul->matrices[mul->cnt], start_ptr, ptr - 1);
             start_ptr = ++ptr;
             mul->cnt++;
         }
     }
-    if (cntAsterix == 0)
+    
+    if ((*(start_ptr - 1) == '*') | (start == start_ptr))
     {
         mul->matrices[mul->cnt] = (Matrix *)malloc(sizeof(struct Matrix));
-        parse_matrix(expression, mul->matrices[mul->cnt], start, end);
+        parse_matrix(expression, mul->matrices[mul->cnt], start_ptr, end);
         mul->cnt++;
     }
 }
+
 void parse_sum(char expression[], struct Sum *global_sum)
 {
     global_sum->cnt = 0;
-    int cntPlus = 0;
     char *start_ptr = expression;
     char *curr_ptr = expression;
+
     for (int i = 0; i < strlen(expression); i++)
     {
         if (*curr_ptr == '+')
         {
-            cntPlus++;
             global_sum->muls[global_sum->cnt] = (Mul *)malloc(sizeof(struct Mul));
-            parse_mul(expression, global_sum->muls[global_sum->cnt], start_ptr, curr_ptr-1);
-            start_ptr = ++curr_ptr;
-            global_sum->cnt++;
-        }
-        if (*(start_ptr - 1) == '+' & i == strlen(expression) - 1)
-        {
-            cntPlus++;
-            global_sum->muls[global_sum->cnt] = (Mul *)malloc(sizeof(struct Mul));
-            parse_mul(expression, global_sum->muls[global_sum->cnt], start_ptr, curr_ptr);
+            parse_mul(expression, global_sum->muls[global_sum->cnt], start_ptr, curr_ptr - 1);
             start_ptr = ++curr_ptr;
             global_sum->cnt++;
         }
         curr_ptr++;
     }
 
-     if (cntPlus == 0)
+    if ((*(start_ptr - 1) == '+') | (start_ptr == expression))
     {
         global_sum->muls[global_sum->cnt] = (Mul *)malloc(sizeof(struct Mul));
         parse_mul(expression, global_sum->muls[global_sum->cnt], start_ptr, curr_ptr);
         global_sum->cnt++;
     }
 }
+
 void multiply_matrices(struct Matrix *first_matrix, struct Matrix *second_matrix, float result[][MAX_COLS])
 {
     for (int i = 0; i < MAX_ROWS; i++)
@@ -132,9 +149,11 @@ void multiply_matrices(struct Matrix *first_matrix, struct Matrix *second_matrix
         }
     }
 }
+
 void sum_matrices(struct Sum *global_sum)
 {
     float result[MAX_ROWS][MAX_COLS] = {0};
+
     for (int i = 0; i < global_sum->cnt; i++)
     {
         for (int j = 0; j < MAX_ROWS; j++)
@@ -146,17 +165,11 @@ void sum_matrices(struct Sum *global_sum)
         }
     }
 
-    for (int i = 0; i < MAX_ROWS; i++)
-    {
-        for (int j = 0; j < MAX_COLS; j++)
-        {
-            printf("%f ", result[i][j]);
-        }
-        printf("\n ");
-    }
-    printf("\n ");
+    print_result_matrix(result);
 }
-void calculate_muls(struct Sum *global_sum){
+
+void calculate_muls(struct Sum *global_sum)
+{
     for (int i = 0; i < global_sum->cnt; i++)
     {
         if (global_sum->muls[i]->cnt > 1)
@@ -178,24 +191,25 @@ void calculate_muls(struct Sum *global_sum){
         }
     }
 }
-void calculate(char expression[], struct Sum *global_sum) {
+
+void calculate(char expression[], struct Sum *global_sum)
+{
     parse_sum(expression, global_sum);
     calculate_muls(global_sum);
     sum_matrices(global_sum);
 }
-int main()
-{
-    char expression[MAX] = "";
 
+int main(int argc, char **argv)
+{
+    // char expression[MAX] = "";
     // scanf("%s", expression);
-    // printf("%s", expression);
-    // parse_sum(expression);
 
     struct Sum global_sum;
-    calculate("[[22, 2, 3], [4, 5, 64], [7, 8, 9]]", &global_sum);
-    calculate("[[22, 2, 3], [4, 5, 64], [7, 8, 9]]*[[3, 2, 3], [4, 5, 6], [7, 8, 9]]", &global_sum);
-    calculate("[[22, 2, 3], [4, 5, 64], [7, 8, 9]]+[[3, 2, 3], [4, 5, 6], [7, 8, 9]]", &global_sum);
-
-    calculate("[[2, 2, 3], [4, 5, 6], [7, 8, 9]]*[[3, 2, 3], [4, 5, 6], [7, 8, 9]]*[[3, 2, 3], [4, 5, 6], [7, 8, 9]] + [[4, 2, 3], [4, 5, 6], [7, 8, 9]] * [[5, 2, 3], [4, 5, 6], [7, 8, 9]] + [[6, 2, 3], [4, 5, 6], [7, 8, 9]]", &global_sum);
+    calculate(argv[1], &global_sum);
+    
+    // calculate("[[1.21, 1, 1], [1, 1, 1], [1, 1, 1]]+[[1, 1, 1], [1, 1, 1], [1, 1, 1]]", &global_sum);
+    // calculate("[[22, 2, 3], [4, 5, 64], [7, 8, 9]]*[[3, 2, 3], [4, 5, 6], [7, 8, 9]]", &global_sum);
+    // calculate("[[22, 2, 3], [4, 5, 64], [7, 8, 9]]+[[3, 2, 3], [4, 5, 6], [7, 8, 9]]", &global_sum);
+    // calculate("[[2, 2, 3], [4, 5, 6], [7, 8, 9]]*[[3, 2, 3], [4, 5, 6], [7, 8, 9]]*[[3, 2, 3], [4, 5, 6], [7, 8, 9]] + [[4, 2, 3], [4, 5, 6], [7, 8, 9]] * [[5, 2, 3], [4, 5, 6], [7, 8, 9]] + [[6, 2, 3], [4, 5, 6], [7, 8, 9]]", &global_sum);
     return 0;
 }
