@@ -9,7 +9,7 @@ int tokenize_string(char expression[], Token *tokens)
 
     while (i < strlen(expression))
     {
-        if ((isdigit(expression[i])) | (expression[i] == DOT_CODE))
+        if ((isdigit(expression[i])) || (expression[i] == DOT_CODE))
         {
             tmp_str[strlen(tmp_str)] = expression[i];
         }

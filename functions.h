@@ -34,6 +34,13 @@ struct Matrix
     float data[MAX_ROWS][MAX_COLS];
 };
 
+class Matrix1
+{
+public:
+    Matrix1();
+    ~Matrix1();
+};
+
 struct Mul
 {
     struct Matrix *matrices[MAX];
@@ -44,6 +51,19 @@ struct Sum
 {
     struct Mul *muls[MAX];
     int cnt;
+};
+
+class Sum1
+{
+public:
+    Sum1();
+    ~Sum1();
+
+    
+
+private:
+    struct Mul *muls[MAX] = {};
+    int cnt = 0;
 };
 
 void calculate(char expression[], struct Sum *global_sum, Token tokens[MAX_TOKENS]);
